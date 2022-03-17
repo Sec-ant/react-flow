@@ -65,62 +65,69 @@ const NodeRenderer = (props: NodeRendererProps) => {
     };
   }, []);
 
-  return (
-    <div className="react-flow__nodes react-flow__container">
-      {nodes.map((node) => {
-        const nodeType = node.type || 'default';
+  const nodeChildren: JSX.Element[] = [];
+  const upperNodes: JSX.Element[] = [];
 
-        if (!props.nodeTypes[nodeType]) {
-          console.warn(`Node type "${nodeType}" not found. Using fallback type "default".`);
-        }
+  nodes.forEach((node) => {
+    const nodeType = node.type || 'default';
 
-        const NodeComponent = (props.nodeTypes[nodeType] || props.nodeTypes.default) as ComponentType<WrapNodeProps>;
-        const isDraggable = !!(node.draggable || (nodesDraggable && typeof node.draggable === 'undefined'));
-        const isSelectable = !!(node.selectable || (elementsSelectable && typeof node.selectable === 'undefined'));
-        const isConnectable = !!(node.connectable || (nodesConnectable && typeof node.connectable === 'undefined'));
+    if (!props.nodeTypes[nodeType]) {
+      console.warn(`Node type "${nodeType}" not found. Using fallback type "default".`);
+    }
 
-        return (
-          <NodeComponent
-            key={node.id}
-            id={node.id}
-            className={node.className}
-            style={node.style}
-            type={nodeType}
-            data={node.data}
-            sourcePosition={node.sourcePosition || Position.Bottom}
-            targetPosition={node.targetPosition || Position.Top}
-            hidden={node.hidden}
-            xPos={node.positionAbsolute?.x ?? 0}
-            yPos={node.positionAbsolute?.y ?? 0}
-            dragging={!!node.dragging}
-            snapGrid={snapGrid}
-            snapToGrid={snapToGrid}
-            selectNodesOnDrag={props.selectNodesOnDrag}
-            onClick={props.onNodeClick}
-            onMouseEnter={props.onNodeMouseEnter}
-            onMouseMove={props.onNodeMouseMove}
-            onMouseLeave={props.onNodeMouseLeave}
-            onContextMenu={props.onNodeContextMenu}
-            onNodeDoubleClick={props.onNodeDoubleClick}
-            onNodeDragStart={props.onNodeDragStart}
-            onNodeDrag={props.onNodeDrag}
-            onNodeDragStop={props.onNodeDragStop}
-            scale={scale}
-            selected={!!node.selected}
-            isDraggable={isDraggable}
-            isSelectable={isSelectable}
-            isConnectable={isConnectable}
-            resizeObserver={resizeObserver}
-            dragHandle={node.dragHandle}
-            zIndex={node.z ?? 0}
-            isParent={!!node.isParent}
-            noDragClassName={props.noDragClassName}
-            noPanClassName={props.noPanClassName}
-          />
-        );
-      })}
-    </div>
-  );
+    const NodeComponent = (props.nodeTypes[nodeType] || props.nodeTypes.default) as ComponentType<WrapNodeProps>;
+    const isDraggable = !!(node.draggable || (nodesDraggable && typeof node.draggable === 'undefined'));
+    const isSelectable = !!(node.selectable || (elementsSelectable && typeof node.selectable === 'undefined'));
+    const isConnectable = !!(node.connectable || (nodesConnectable && typeof node.connectable === 'undefined'));
+
+    const nodeWrapper = (
+      <NodeComponent
+        key={node.id}
+        id={node.id}
+        className={node.className}
+        style={node.style}
+        type={nodeType}
+        data={node.data}
+        sourcePosition={node.sourcePosition || Position.Bottom}
+        targetPosition={node.targetPosition || Position.Top}
+        hidden={node.hidden}
+        xPos={node.positionAbsolute?.x ?? 0}
+        yPos={node.positionAbsolute?.y ?? 0}
+        dragging={!!node.dragging}
+        snapGrid={snapGrid}
+        snapToGrid={snapToGrid}
+        selectNodesOnDrag={props.selectNodesOnDrag}
+        onClick={props.onNodeClick}
+        onMouseEnter={props.onNodeMouseEnter}
+        onMouseMove={props.onNodeMouseMove}
+        onMouseLeave={props.onNodeMouseLeave}
+        onContextMenu={props.onNodeContextMenu}
+        onNodeDoubleClick={props.onNodeDoubleClick}
+        onNodeDragStart={props.onNodeDragStart}
+        onNodeDrag={props.onNodeDrag}
+        onNodeDragStop={props.onNodeDragStop}
+        scale={scale}
+        selected={!!node.selected}
+        isDraggable={isDraggable}
+        isSelectable={isSelectable}
+        isConnectable={isConnectable}
+        resizeObserver={resizeObserver}
+        dragHandle={node.dragHandle}
+        zIndex={node.z ?? 0}
+        isParent={!!node.isParent}
+        noDragClassName={props.noDragClassName}
+        noPanClassName={props.noPanClassName}
+      />
+    );
+
+    if (node.z) {
+      upperNodes.push(nodeWrapper);
+    } else {
+      nodeChildren.push(nodeWrapper);
+    }
+  });
+
+  return <div className="react-flow__nodes react-flow__container">{nodeChildren.concat(upperNodes)}</div>;
 };
 
 NodeRenderer.displayName = 'NodeRenderer';
