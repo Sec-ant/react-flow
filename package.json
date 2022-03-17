@@ -1,5 +1,5 @@
 {
-  "name": "react-flow-renderer",
+  "name": "@sec-ant/react-flow-renderer",
   "version": "10.0.2-patch.1",
   "engines": {
     "node": ">=12"
@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wbkd/react-flow.git"
+    "url": "git+https://github.com/wbkd/react-flow.git"
   },
   "scripts": {
     "build": "rollup -c --environment NODE_ENV:production && postcss src/*.css --dir dist",
@@ -79,5 +79,17 @@
   "files": [
     "dist",
     "nocss"
-  ]
+  ],
+  "description": "![readme-header-dark](https://user-images.githubusercontent.com/3797215/156384064-08a889d6-73c0-4cbf-8ff3-28dc601d1f5f.svg#gh-dark-mode-only) ![readme-header](https://user-images.githubusercontent.com/3797215/156259138-fb9f59f8-52f2-474a-b78c-6570867e4ead.svg#gh-light-mode-only)",
+  "bugs": {
+    "url": "https://github.com/wbkd/react-flow/issues"
+  },
+  "homepage": "https://github.com/wbkd/react-flow#readme",
+  "directories": {
+    "example": "example"
+  },
+  "keywords": [
+    "react-flow"
+  ],
+  "author": "Ze-Zheng Wu"
 }
