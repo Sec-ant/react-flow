@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { sqrt, add, multiply, pow, divide, re, Complex } from 'mathjs';
 import { EdgeProps, Position } from '../../types';
 import BaseEdge from './BaseEdge';
 import { getCenter } from './utils';
@@ -10,7 +11,7 @@ export interface GetBezierPathParams {
   targetX: number;
   targetY: number;
   targetPosition?: Position;
-  curvature?: number;
+  stub?: number;
   centerX?: number;
   centerY?: number;
 }
@@ -21,60 +22,46 @@ interface GetControlWithCurvatureParams {
   y1: number;
   x2: number;
   y2: number;
-  cX: number;
-  cY: number;
-  c: number;
+  s: number;
 }
 
-function calculateControlOffset(distance: number, curvature: number): number {
-  return curvature * 25 * Math.sqrt(distance);
+function calculateControlOffset(distance: number, stub: number): number {
+  const criticalPoint = 2 * stub;
+  if (distance >= criticalPoint) {
+    return Math.max(0.5 * distance, criticalPoint);
+  } else {
+    const temp0 = distance - criticalPoint;
+    const temp1 = temp0 * temp0;
+    const temp2 = pow(multiply(temp1, add(distance, multiply(2, sqrt((distance - stub) * stub)))), 1 / 3);
+    return re(add(add(divide(temp1, temp2), temp2), distance) as Complex) as number;
+  }
 }
 
-function getControlWithCurvature({ pos, x1, y1, x2, y2, cX, cY, c }: GetControlWithCurvatureParams): [number, number] {
+function getControlWithCurvature({ pos, x1, y1, x2, y2, s }: GetControlWithCurvatureParams): [number, number] {
   let ctX: number, ctY: number;
   switch (pos) {
     case Position.Left:
       {
-        const d = x2 - x1;
         ctY = y1;
-        if (d <= 0) {
-          ctX = cX;
-        } else {
-          ctX = x1 - calculateControlOffset(d, c);
-        }
+        ctX = x1 - calculateControlOffset(x1 - x2, s);
       }
       break;
     case Position.Right:
       {
-        const d = x1 - x2;
         ctY = y1;
-        if (d <= 0) {
-          ctX = cX;
-        } else {
-          ctX = x1 + calculateControlOffset(d, c);
-        }
+        ctX = x1 + calculateControlOffset(x2 - x1, s);
       }
       break;
     case Position.Top:
       {
-        const d = y2 - y1;
         ctX = x1;
-        if (d <= 0) {
-          ctY = cY;
-        } else {
-          ctY = y1 - calculateControlOffset(d, c);
-        }
+        ctY = y1 - calculateControlOffset(y1 - y2, s);
       }
       break;
     case Position.Bottom:
       {
-        const d = y1 - y2;
         ctX = x1;
-        if (d <= 0) {
-          ctY = cY;
-        } else {
-          ctY = y1 + calculateControlOffset(d, c);
-        }
+        ctY = y1 + calculateControlOffset(y2 - y1, s);
       }
       break;
   }
@@ -88,7 +75,7 @@ export function getBezierPath({
   targetX,
   targetY,
   targetPosition = Position.Top,
-  curvature = 0.25,
+  stub = 10,
   centerX,
   centerY,
 }: GetBezierPathParams): string {
@@ -101,9 +88,7 @@ export function getBezierPath({
     y1: sourceY,
     x2: targetX,
     y2: targetY,
-    cX: centerX,
-    cY: centerY,
-    c: curvature,
+    s: stub,
   });
   const [targetControlX, targetControlY] = getControlWithCurvature({
     pos: targetPosition,
@@ -111,9 +96,7 @@ export function getBezierPath({
     y1: targetY,
     x2: sourceX,
     y2: sourceY,
-    cX: centerX,
-    cY: centerY,
-    c: curvature,
+    s: stub,
   });
   return `M${sourceX},${sourceY} C${sourceControlX},${sourceControlY} ${targetControlX},${targetControlY} ${targetX},${targetY}`;
 }
@@ -135,7 +118,7 @@ export default memo(
     style,
     markerEnd,
     markerStart,
-    curvature,
+    stub,
   }: EdgeProps) => {
     const [centerX, centerY] = getCenter({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
     const path = getBezierPath({
@@ -145,7 +128,7 @@ export default memo(
       targetX,
       targetY,
       targetPosition,
-      curvature,
+      stub,
     });
 
     return (
