@@ -1,6 +1,6 @@
 {
   "name": "@sec-ant/react-flow-renderer",
-  "version": "10.0.3-patch.4",
+  "version": "10.0.3-patch.6",
   "engines": {
     "node": ">=12"
   },
