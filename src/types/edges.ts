@@ -61,7 +61,7 @@ export interface EdgeProps<T = any> {
   targetHandleId?: string | null;
   markerStart?: string;
   markerEnd?: string;
-  stub?: number;
+  curvature?: number;
 }
 
 export type BaseEdgeProps = Pick<
