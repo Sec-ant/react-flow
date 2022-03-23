@@ -33,7 +33,7 @@ function calculateXYZPosition(
   return calculateXYZPosition(parentNode, nodeInternals, parentNodes, {
     x: (result.x ?? 0) + (parentNode.position?.x ?? 0),
     y: (result.y ?? 0) + (parentNode.position?.y ?? 0),
-    z: (parentNode.z ?? 0) > (node.z ?? 0) ? parentNode.z ?? 0 : node.z ?? 0,
+    z: (parentNode.z ?? 0) > (result.z ?? 0) ? parentNode.z ?? 0 : result.z ?? 0,
   });
 }
 
@@ -43,6 +43,7 @@ export function createNodeInternals(nodes: Node[], nodeInternals: NodeInternals)
 
   nodes.forEach((node) => {
     const z = isNumeric(node.zIndex) ? node.zIndex : node.dragging || node.selected ? 1000 : 0;
+
     const internals: Node = {
       ...nodeInternals.get(node.id),
       ...node,
@@ -127,20 +128,25 @@ export function createPositionChange({
 
   if (diff) {
     const nextPosition = { x: node.position.x + diff.x, y: node.position.y + diff.y };
-    let currentExtent = nodeExtent || node.extent;
+    let currentExtent = node.extent || nodeExtent;
 
-    if (node.extent === 'parent' && node.parentNode && node.width && node.height) {
-      const parent = nodeInternals.get(node.parentNode);
-      currentExtent =
-        parent?.width && parent?.height
-          ? [
-              [0, 0],
-              [parent.width - node.width, parent.height - node.height],
-            ]
-          : currentExtent;
+    if (node.extent === 'parent') {
+      if (node.parentNode && node.width && node.height) {
+        const parent = nodeInternals.get(node.parentNode);
+        currentExtent =
+          parent?.width && parent?.height
+            ? [
+                [0, 0],
+                [parent.width - node.width, parent.height - node.height],
+              ]
+            : currentExtent;
+      } else {
+        console.warn('Only child nodes can use parent extent');
+        currentExtent = nodeExtent;
+      }
     }
 
-    change.position = currentExtent ? clampPosition(nextPosition, currentExtent) : nextPosition;
+    change.position = currentExtent ? clampPosition(nextPosition, currentExtent as CoordinateExtent) : nextPosition;
   }
 
   return change;

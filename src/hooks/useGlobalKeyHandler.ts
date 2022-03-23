@@ -4,7 +4,7 @@ import shallow from 'zustand/shallow';
 import { useStore, useStoreApi } from '../store';
 import useKeyPress from './useKeyPress';
 import { getConnectedEdges } from '../utils/graph';
-import { EdgeChange, KeyCode, NodeChange, ReactFlowState } from '../types';
+import { EdgeChange, KeyCode, NodeChange, Node, ReactFlowState } from '../types';
 
 interface HookParams {
   deleteKeyCode: KeyCode | null;
@@ -26,44 +26,60 @@ export default ({ deleteKeyCode, multiSelectionKeyCode }: HookParams): void => {
 
   useEffect(() => {
     const { nodeInternals, edges, hasDefaultNodes, hasDefaultEdges, onNodesDelete, onEdgesDelete } = store.getState();
-    // @TODO: work with nodeInternals instead of converting it to an array
-    const nodes = Array.from(nodeInternals).map(([_, node]) => node);
-    const selectedNodes = nodes.filter((n) => n.selected);
+    const nodes = Array.from(nodeInternals.values());
+    const nodesToRemove = nodes.reduce<Node[]>((res, node) => {
+      if (!node.selected && node.parentNode && res.find((n) => n.id === node.parentNode)) {
+        res.push(node);
+      } else if (node.selected) {
+        res.push(node);
+      }
+
+      return res;
+    }, []);
     const selectedEdges = edges.filter((e) => e.selected);
 
-    if (deleteKeyPressed && (selectedNodes || selectedEdges)) {
-      const connectedEdges = getConnectedEdges(selectedNodes, edges);
+    if (deleteKeyPressed && (nodesToRemove || selectedEdges)) {
+      const connectedEdges = getConnectedEdges(nodesToRemove, edges);
       const edgesToRemove = [...selectedEdges, ...connectedEdges];
       const edgeIdsToRemove = edgesToRemove.map((e) => e.id);
 
-      if (hasDefaultNodes) {
-        selectedNodes.forEach((node) => {
-          nodeInternals.delete(node.id);
-        });
+      if (hasDefaultEdges || hasDefaultNodes) {
+        if (hasDefaultEdges) {
+          store.setState({
+            edges: edges.filter((e) => !edgeIdsToRemove.includes(e.id)),
+          });
+        }
+
+        if (hasDefaultNodes) {
+          nodesToRemove.forEach((node) => {
+            nodeInternals.delete(node.id);
+          });
+
+          store.setState({
+            nodeInternals: new Map(nodeInternals),
+          });
+        }
       }
 
-      if (hasDefaultEdges) {
-        store.setState({
-          nodeInternals: new Map(nodeInternals),
-          edges: edges.filter((e) => !edgeIdsToRemove.includes(e.id)),
-        });
+      if (edgeIdsToRemove.length > 0) {
+        onEdgesDelete?.(edgesToRemove);
+
+        if (onEdgesChange) {
+          const edgeChanges: EdgeChange[] = edgeIdsToRemove.map((id) => ({
+            id,
+            type: 'remove',
+          }));
+          onEdgesChange(edgeChanges);
+        }
       }
 
-      onNodesDelete?.(selectedNodes);
-      onEdgesDelete?.(edgesToRemove);
+      if (nodesToRemove.length > 0) {
+        onNodesDelete?.(nodesToRemove);
 
-      if (onNodesChange) {
-        const nodeChanges: NodeChange[] = selectedNodes.map((n) => ({ id: n.id, type: 'remove' }));
-        onNodesChange(nodeChanges);
-      }
-
-      if (onEdgesChange) {
-        const edgeChanges: EdgeChange[] = edgeIdsToRemove.map((id) => ({
-          id,
-          type: 'remove',
-        }));
-
-        onEdgesChange(edgeChanges);
+        if (onNodesChange) {
+          const nodeChanges: NodeChange[] = nodesToRemove.map((n) => ({ id: n.id, type: 'remove' }));
+          onNodesChange(nodeChanges);
+        }
       }
 
       store.setState({ nodesSelectionActive: false });
