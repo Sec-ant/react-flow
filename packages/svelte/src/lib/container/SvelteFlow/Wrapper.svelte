@@ -65,8 +65,6 @@
     nodeOrigin,
     nodeDragThreshold,
     nodeDragDistance,
-    paneClickDistance,
-    nodeClickDistance,
     connectionDragThreshold,
     minZoom,
     maxZoom,
