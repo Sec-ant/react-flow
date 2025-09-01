@@ -95,6 +95,7 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
   onDragStop,
 }: XYDragParams<OnNodeDrag>): XYDragInstance {
   let lastPos: { x: number | null; y: number | null } = { x: null, y: null };
+  let lastClientPos: { x: number | null; y: number | null } = { x: null, y: null }; // for drag threshold calculation in client coordinates
   let autoPanId = 0;
   let dragItems = new Map<string, NodeDragItem>();
   let autoPanStarted = false;
@@ -275,6 +276,7 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
 
       const pointerPos = getPointerPosition(event.sourceEvent, { transform, snapGrid, snapToGrid, containerBounds });
       lastPos = pointerPos;
+      lastClientPos = getEventPosition(event.sourceEvent, containerBounds!);
       dragItems = getDragItems(nodeLookup, nodesDraggable, pointerPos, nodeId);
 
       if (dragItems.size > 0 && (onDragStart || onNodeDragStart || (!nodeId && onSelectionDragStart))) {
@@ -309,6 +311,7 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
 
         const pointerPos = getPointerPosition(event.sourceEvent, { transform, snapGrid, snapToGrid, containerBounds });
         lastPos = pointerPos;
+        lastClientPos = getEventPosition(event.sourceEvent, containerBounds!);
         mousePosition = getEventPosition(event.sourceEvent, containerBounds!);
       })
       .on('drag', (event: UseDragEvent) => {
@@ -334,9 +337,11 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
         }
 
         if (!dragStarted) {
-          const x = pointerPos.xSnapped - (lastPos.x ?? 0);
-          const y = pointerPos.ySnapped - (lastPos.y ?? 0);
-          const distance = Math.sqrt(x * x + y * y);
+          // Calculate distance in client coordinates for consistent drag threshold behavior across zoom levels
+          const currentClientPos = getEventPosition(event.sourceEvent, containerBounds!);
+          const deltaX = currentClientPos.x - (lastClientPos.x ?? 0);
+          const deltaY = currentClientPos.y - (lastClientPos.y ?? 0);
+          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
           if (distance > nodeDragThreshold) {
             startDrag(event);
