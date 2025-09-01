@@ -158,9 +158,18 @@ export type SvelteFlowProps<
     /**
      * With a threshold greater than zero you can control the distinction between node drag and click events.
      * If threshold equals 1, you need to drag the node 1 pixel before a drag event is fired.
+     * This threshold is measured in flow coordinates (zoom-dependent).
      * @default 1
      */
     nodeDragThreshold?: number;
+    /**
+     * The threshold in client pixels that the mouse must move before a node drag event is fired.
+     * Unlike `nodeDragThreshold`, this threshold is measured in client coordinates (zoom-independent).
+     * When both are provided, `nodeDragDistance` takes precedence.
+     * This is useful for consistent drag behavior across different zoom levels.
+     * @default undefined
+     */
+    nodeDragDistance?: number;
     /**
      * Distance that the mouse can move between mousedown/up that will trigger a click
      * @default 0

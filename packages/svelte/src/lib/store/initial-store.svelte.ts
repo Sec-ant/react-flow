@@ -283,6 +283,7 @@ export function getInitialStore<NodeType extends Node = Node, EdgeType extends E
     defaultEdgeOptions: Partial<Edge> = $derived(signals.props.defaultEdgeOptions ?? {});
 
     nodeDragThreshold: number = $derived(signals.props.nodeDragThreshold ?? 1);
+    nodeDragDistance: number | undefined = $derived(signals.props.nodeDragDistance);
     autoPanOnNodeDrag: boolean = $derived(signals.props.autoPanOnNodeDrag ?? true);
     autoPanOnConnect: boolean = $derived(signals.props.autoPanOnConnect ?? true);
     autoPanOnNodeFocus: boolean = $derived(signals.props.autoPanOnNodeFocus ?? true);

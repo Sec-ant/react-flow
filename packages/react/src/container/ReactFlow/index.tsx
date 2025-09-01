@@ -139,6 +139,7 @@ function ReactFlow<NodeType extends Node = Node, EdgeType extends Edge = Edge>(
     style,
     id,
     nodeDragThreshold,
+    nodeDragDistance,
     connectionDragThreshold,
     viewport,
     onViewportChange,
@@ -307,6 +308,7 @@ function ReactFlow<NodeType extends Node = Node, EdgeType extends Edge = Edge>(
           isValidConnection={isValidConnection}
           selectNodesOnDrag={selectNodesOnDrag}
           nodeDragThreshold={nodeDragThreshold}
+          nodeDragDistance={nodeDragDistance}
           connectionDragThreshold={connectionDragThreshold}
           onBeforeDelete={onBeforeDelete}
           paneClickDistance={paneClickDistance}

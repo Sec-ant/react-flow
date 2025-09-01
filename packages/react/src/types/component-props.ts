@@ -661,9 +661,18 @@ export interface ReactFlowProps<NodeType extends Node = Node, EdgeType extends E
    * With a threshold greater than zero you can delay node drag events.
    * If threshold equals 1, you need to drag the node 1 pixel before a drag event is fired.
    * 1 is the default value, so that clicks don't trigger drag events.
+   * This threshold is measured in flow coordinates (zoom-dependent).
    * @default 1
    */
   nodeDragThreshold?: number;
+  /**
+   * The threshold in client pixels that the mouse must move before a node drag event is fired.
+   * Unlike `nodeDragThreshold`, this threshold is measured in client coordinates (zoom-independent).
+   * When both are provided, `nodeDragDistance` takes precedence.
+   * This is useful for consistent drag behavior across different zoom levels.
+   * @default undefined
+   */
+  nodeDragDistance?: number;
   /**
    * The threshold in pixels that the mouse must move before a connection line starts to drag.
    * This is useful to prevent accidental connections when clicking on a handle.

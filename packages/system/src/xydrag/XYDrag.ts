@@ -50,6 +50,7 @@ type StoreItems<OnNodeDrag> = {
   nodesDraggable: boolean;
   selectNodesOnDrag: boolean;
   nodeDragThreshold: number;
+  nodeDragDistance?: number;
   panBy: PanBy;
   unselectNodesAndEdges: (params?: { nodes?: NodeBase[]; edges?: EdgeBase[] }) => void;
   onError?: OnError;
@@ -95,7 +96,7 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
   onDragStop,
 }: XYDragParams<OnNodeDrag>): XYDragInstance {
   let lastPos: { x: number | null; y: number | null } = { x: null, y: null };
-  let lastClientPos: { x: number | null; y: number | null } = { x: null, y: null }; // for drag threshold calculation in client coordinates
+  let lastClientPos: { x: number | null; y: number | null } = { x: null, y: null }; // for nodeDragDistance calculation in client coordinates
   let autoPanId = 0;
   let dragItems = new Map<string, NodeDragItem>();
   let autoPanStarted = false;
@@ -276,7 +277,6 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
 
       const pointerPos = getPointerPosition(event.sourceEvent, { transform, snapGrid, snapToGrid, containerBounds });
       lastPos = pointerPos;
-      lastClientPos = getEventPosition(event.sourceEvent, containerBounds!);
       dragItems = getDragItems(nodeLookup, nodesDraggable, pointerPos, nodeId);
 
       if (dragItems.size > 0 && (onDragStart || onNodeDragStart || (!nodeId && onSelectionDragStart))) {
@@ -298,14 +298,16 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
     const d3DragInstance = drag()
       .clickDistance(nodeClickDistance)
       .on('start', (event: UseDragEvent) => {
-        const { domNode, nodeDragThreshold, transform, snapGrid, snapToGrid } = getStoreItems();
+        const { domNode, nodeDragThreshold, nodeDragDistance, transform, snapGrid, snapToGrid } = getStoreItems();
         containerBounds = domNode?.getBoundingClientRect() || null;
 
         abortDrag = false;
         nodePositionsChanged = false;
         dragEvent = event.sourceEvent;
 
-        if (nodeDragThreshold === 0) {
+        // Use nodeDragDistance (client coordinates) if available, otherwise nodeDragThreshold (flow coordinates)
+        const thresholdToUse = nodeDragDistance ?? nodeDragThreshold;
+        if (thresholdToUse === 0) {
           startDrag(event);
         }
 
@@ -315,7 +317,7 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
         mousePosition = getEventPosition(event.sourceEvent, containerBounds!);
       })
       .on('drag', (event: UseDragEvent) => {
-        const { autoPanOnNodeDrag, transform, snapGrid, snapToGrid, nodeDragThreshold, nodeLookup } = getStoreItems();
+        const { autoPanOnNodeDrag, transform, snapGrid, snapToGrid, nodeDragThreshold, nodeDragDistance, nodeLookup } = getStoreItems();
         const pointerPos = getPointerPosition(event.sourceEvent, { transform, snapGrid, snapToGrid, containerBounds });
         dragEvent = event.sourceEvent;
 
@@ -337,20 +339,34 @@ export function XYDrag<OnNodeDrag extends (e: any, nodes: any, node: any) => voi
         }
 
         if (!dragStarted) {
-          // Calculate distance in client coordinates for consistent drag threshold behavior across zoom levels
-          const currentClientPos = getEventPosition(event.sourceEvent, containerBounds!);
-          const deltaX = currentClientPos.x - (lastClientPos.x ?? 0);
-          const deltaY = currentClientPos.y - (lastClientPos.y ?? 0);
-          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-          if (distance > nodeDragThreshold) {
-            startDrag(event);
+          let distance: number;
+          
+          if (nodeDragDistance !== undefined) {
+            // Use client coordinates for consistent behavior across zoom levels
+            const currentClientPos = getEventPosition(event.sourceEvent, containerBounds!);
+            const deltaX = currentClientPos.x - (lastClientPos.x ?? 0);
+            const deltaY = currentClientPos.y - (lastClientPos.y ?? 0);
+            distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            if (distance > nodeDragDistance) {
+              startDrag(event);
+            }
+          } else {
+            // Use flow coordinates for backward compatibility
+            const x = pointerPos.xSnapped - (lastPos.x ?? 0);
+            const y = pointerPos.ySnapped - (lastPos.y ?? 0);
+            distance = Math.sqrt(x * x + y * y);
+            
+            if (distance > nodeDragThreshold) {
+              startDrag(event);
+            }
           }
         }
 
         // skip events without movement
         if ((lastPos.x !== pointerPos.xSnapped || lastPos.y !== pointerPos.ySnapped) && dragItems && dragStarted) {
           mousePosition = getEventPosition(event.sourceEvent, containerBounds!);
+          lastClientPos = mousePosition; // Update client coordinates for next drag threshold calculation
           updateNodes(pointerPos);
         }
       })

@@ -107,6 +107,7 @@ const getInitialState = ({
     noPanClassName: 'nopan',
     nodeOrigin: storeNodeOrigin,
     nodeDragThreshold: 1,
+    nodeDragDistance: undefined,
     connectionDragThreshold: 1,
 
     snapGrid: [15, 15],
