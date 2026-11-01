@@ -1,6 +1,10 @@
 import type { UpdateNodeInternals, InternalNodeUpdate } from '@xyflow/system';
 
 import { useReactFlowStoreApi } from './useReactFlowStore';
+import type { ReactFlowStoreApi } from '../types';
+
+type PendingUpdate = { domNode: HTMLDivElement; ids: Set<string> };
+const pendingUpdates = new WeakMap<ReactFlowStoreApi['optionsStore'], PendingUpdate>();
 
 /**
  * When you programmatically add or remove handles to a node or update a node's
@@ -51,18 +55,45 @@ export function useUpdateNodeInternals(): UpdateNodeInternals {
   const { optionsStore } = useReactFlowStoreApi();
 
   return (id: string | string[]) => {
-    const { domNode, updateNodeInternals } = optionsStore.getState();
-    const updateIds = Array.isArray(id) ? id : [id];
-    const updates = new Map<string, InternalNodeUpdate>();
+    const { domNode } = optionsStore.getState();
+    if (!domNode) {
+      return;
+    }
 
-    updateIds.forEach((updateId) => {
-      const nodeElement = domNode?.querySelector(`.react-flow__node[data-id="${updateId}"]`) as HTMLDivElement;
+    let pending = pendingUpdates.get(optionsStore);
+    if (pending?.domNode === domNode) {
+      for (const updateId of Array.isArray(id) ? id : [id]) {
+        pending.ids.add(updateId);
+      }
+      return;
+    }
 
-      if (nodeElement) {
-        updates.set(updateId, { id: updateId, nodeElement, force: true });
+    pending = { domNode, ids: new Set(Array.isArray(id) ? id : [id]) };
+    pendingUpdates.set(optionsStore, pending);
+    const queued = pending;
+
+    requestAnimationFrame(() => {
+      if (pendingUpdates.get(optionsStore) !== queued) {
+        return;
+      }
+      pendingUpdates.delete(optionsStore);
+
+      const { domNode: currentDomNode, updateNodeInternals } = optionsStore.getState();
+      if (currentDomNode !== queued.domNode) {
+        return;
+      }
+
+      const updates = new Map<string, InternalNodeUpdate>();
+      for (const updateId of queued.ids) {
+        const nodeElement = currentDomNode.querySelector<HTMLDivElement>(`.react-flow__node[data-id="${updateId}"]`);
+        if (nodeElement?.isConnected) {
+          updates.set(updateId, { id: updateId, nodeElement, force: true });
+        }
+      }
+
+      if (updates.size) {
+        updateNodeInternals(updates, { triggerFitView: false });
       }
     });
-
-    requestAnimationFrame(() => updateNodeInternals(updates, { triggerFitView: false }));
   };
 }
